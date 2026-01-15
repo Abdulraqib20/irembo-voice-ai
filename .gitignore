@@ -72,3 +72,6 @@ coverage.xml
 .mypy_cache/
 .dmypy.json
 .pytype/
+
+models/transformer_intent/checkpoint-497
+models/transformer_intent/checkpoint-710
