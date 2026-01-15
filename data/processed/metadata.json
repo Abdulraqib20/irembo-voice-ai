@@ -1,0 +1,29 @@
+{
+  "dataset_name": "irembo_voiceai_intent",
+  "splits": {
+    "train": 561,
+    "val": 70,
+    "test": 69
+  },
+  "intents": [
+    "check_application_status",
+    "requirements_information",
+    "payment_help",
+    "appointment_booking",
+    "fees_information",
+    "cancel_or_reschedule_appointment",
+    "complaint_or_support_ticket",
+    "start_new_application",
+    "reset_password_login_help",
+    "service_eligibility",
+    "speak_to_agent",
+    "document_upload_help",
+    "update_application_details"
+  ],
+  "languages": [
+    "rw",
+    "mixed",
+    "en"
+  ],
+  "preprocessing_version": "1.0"
+}

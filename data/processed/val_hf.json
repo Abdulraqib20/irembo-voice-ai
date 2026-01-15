@@ -1,0 +1,385 @@
+{
+  "data": [
+    {
+      "text": "How do I begin an application for driving license?",
+      "label": 6,
+      "language": "en"
+    },
+    {
+      "text": "Uburyo bwo kwishyura tax clearance ni ubuhe?",
+      "label": 6,
+      "language": "rw"
+    },
+    {
+      "text": "Nashaka gufata appointment ya ESIA i Muhanga.",
+      "label": 0,
+      "language": "mixed"
+    },
+    {
+      "text": "Nishyuye but ntabwo byemejwe.",
+      "label": 6,
+      "language": "mixed"
+    },
+    {
+      "text": "Ndashaka booking yigihe kuri gusimbuza indangamuntu.",
+      "label": 0,
+      "language": "rw"
+    },
+    {
+      "text": "What are the requirements for visa on arrival?",
+      "label": 7,
+      "language": "en"
+    },
+    {
+      "text": "Ni nde wemerewe attestation y’imisoro?",
+      "label": 9,
+      "language": "rw"
+    },
+    {
+      "text": "Uburyo bwo kwishyura permis ni ubuhe?",
+      "label": 6,
+      "language": "rw"
+    },
+    {
+      "text": "Nishyuye but ntabwo byemejwe.",
+      "label": 6,
+      "language": "mixed"
+    },
+    {
+      "text": "What are the eligibility rules for marriage certificate?",
+      "label": 9,
+      "language": "en"
+    },
+    {
+      "text": "I want to start a new application for marriage certificate.",
+      "label": 11,
+      "language": "en"
+    },
+    {
+      "text": "Who can apply for passport?",
+      "label": 9,
+      "language": "en"
+    },
+    {
+      "text": "Ni iki ngomba kuzana kugira ngo nsabe visa yo kuza?",
+      "label": 7,
+      "language": "rw"
+    },
+    {
+      "text": "Ndashaka gukora new application ya business registration.",
+      "label": 11,
+      "language": "mixed"
+    },
+    {
+      "text": "OTP ntabwo igeze, mwamfasha?",
+      "label": 8,
+      "language": "rw"
+    },
+    {
+      "text": "What documents nkeneye kuri ESIA?",
+      "label": 7,
+      "language": "mixed"
+    },
+    {
+      "text": "I want to raise a complaint about visa on arrival.",
+      "label": 3,
+      "language": "en"
+    },
+    {
+      "text": "Nashaka gufata appointment kuri attestation y’imisoro i Huye.",
+      "label": 0,
+      "language": "rw"
+    },
+    {
+      "text": "Ni izihe requirements za business registration?",
+      "label": 7,
+      "language": "mixed"
+    },
+    {
+      "text": "Eligibility ya birth certificate ni iyihe?",
+      "label": 9,
+      "language": "mixed"
+    },
+    {
+      "text": "What documents nkeneye kuri passport?",
+      "label": 7,
+      "language": "mixed"
+    },
+    {
+      "text": "Ni iki ngomba kuzana kugira ngo nsabe icyangombwa cy’ubutaka?",
+      "label": 7,
+      "language": "rw"
+    },
+    {
+      "text": "Ni iki ngomba kuzana kugira ngo nsabe birth certificate?",
+      "label": 7,
+      "language": "rw"
+    },
+    {
+      "text": "Help me gutangira application ya driving license.",
+      "label": 11,
+      "language": "mixed"
+    },
+    {
+      "text": "Nashaka gufata appointment ya tax clearance i Rwamagana.",
+      "label": 0,
+      "language": "mixed"
+    },
+    {
+      "text": "How much does driving license cost?",
+      "label": 5,
+      "language": "en"
+    },
+    {
+      "text": "Ni izihe requirements za tax clearance?",
+      "label": 7,
+      "language": "mixed"
+    },
+    {
+      "text": "How much does birth certificate cost?",
+      "label": 5,
+      "language": "en"
+    },
+    {
+      "text": "Amabwiriza yo gusaba visa on arrival ni ayahe?",
+      "label": 7,
+      "language": "rw"
+    },
+    {
+      "text": "Nshaka kumenya ikiguzi cya business registration.",
+      "label": 5,
+      "language": "rw"
+    },
+    {
+      "text": "I need help with a problem on visa on arrival.",
+      "label": 3,
+      "language": "en"
+    },
+    {
+      "text": "I need help with a problem on ESIA.",
+      "label": 3,
+      "language": "en"
+    },
+    {
+      "text": "Ndashaka kumenya aho case igeze.",
+      "label": 2,
+      "language": "rw"
+    },
+    {
+      "text": "Ndashaka kugaragaza ikibazo cyabaye kuri icyangombwa cy’ubutaka.",
+      "label": 3,
+      "language": "rw"
+    },
+    {
+      "text": "Mumpuze n'agent please.",
+      "label": 10,
+      "language": "mixed"
+    },
+    {
+      "text": "Ndashaka gutangira gusaba icyemezo cy’amavuko.",
+      "label": 11,
+      "language": "rw"
+    },
+    {
+      "text": "Ndashaka kugaragaza ikibazo cyabaye kuri visa on arrival.",
+      "label": 3,
+      "language": "rw"
+    },
+    {
+      "text": "Ndashaka kumenya aho application number igeze.",
+      "label": 2,
+      "language": "rw"
+    },
+    {
+      "text": "Help me reset password yanjye.",
+      "label": 8,
+      "language": "mixed"
+    },
+    {
+      "text": "I submitted my application but I can't see the status.",
+      "label": 2,
+      "language": "en"
+    },
+    {
+      "text": "Nkeneye update details za application number yanjye.",
+      "label": 12,
+      "language": "mixed"
+    },
+    {
+      "text": "I submitted request ariko status sinayibona.",
+      "label": 2,
+      "language": "mixed"
+    },
+    {
+      "text": "Please tell me the payment amount for passport.",
+      "label": 5,
+      "language": "en"
+    },
+    {
+      "text": "Natanze application number ariko sinzi aho igeze.",
+      "label": 2,
+      "language": "rw"
+    },
+    {
+      "text": "I need to update my applicashon details.",
+      "label": 12,
+      "language": "en"
+    },
+    {
+      "text": "I want to start a new application for tax clearance.",
+      "label": 11,
+      "language": "en"
+    },
+    {
+      "text": "Ese icyemezo cy’amavuko bisaba amafaranga angahe?",
+      "label": 5,
+      "language": "rw"
+    },
+    {
+      "text": "Ndashaka kumenya aho application igeze.",
+      "label": 2,
+      "language": "rw"
+    },
+    {
+      "text": "Can you tell me the progress of my birth certificate application?",
+      "label": 2,
+      "language": "en"
+    },
+    {
+      "text": "I need to update my application details.",
+      "label": 12,
+      "language": "en"
+    },
+    {
+      "text": "Checka niba dossier yanjye yarangiye.",
+      "label": 2,
+      "language": "rw"
+    },
+    {
+      "text": "The OTP is not coming through.",
+      "label": 8,
+      "language": "en"
+    },
+    {
+      "text": "Ndashaka gukora new application ya business registration.",
+      "label": 11,
+      "language": "mixed"
+    },
+    {
+      "text": "Ndashaka reschedule appointment yanjye ya ESIA.",
+      "label": 1,
+      "language": "mixed"
+    },
+    {
+      "text": "Ndashaka kuvugana numukozi.",
+      "label": 10,
+      "language": "rw"
+    },
+    {
+      "text": "Nabonye ikibazo cyo kwinjira, password yibagiwe.",
+      "label": 8,
+      "language": "rw"
+    },
+    {
+      "text": "How can I book a slot for birth certificate?",
+      "label": 0,
+      "language": "en"
+    },
+    {
+      "text": "Nkeneye gukora applicashon nshya ya pasiporo.",
+      "label": 11,
+      "language": "rw"
+    },
+    {
+      "text": "Ndashaka kureba status ya request yanjye.",
+      "label": 2,
+      "language": "rw"
+    },
+    {
+      "text": "Ntabasha login, password yibagiwe.",
+      "label": 8,
+      "language": "mixed"
+    },
+    {
+      "text": "Ndashaka kumenya aho application number igeze.",
+      "label": 2,
+      "language": "rw"
+    },
+    {
+      "text": "Nashaka guhindura amakuru muri case yanjye.",
+      "label": 12,
+      "language": "rw"
+    },
+    {
+      "text": "Ndashaka kureba status ya aplication yanjye ya ID replacement.",
+      "label": 2,
+      "language": "mixed"
+    },
+    {
+      "text": "Nashaka kongera ifoto/scan kuri request.",
+      "label": 4,
+      "language": "rw"
+    },
+    {
+      "text": "Ndashaka gusubika appointment yanjye.",
+      "label": 1,
+      "language": "rw"
+    },
+    {
+      "text": "Where is my application now?",
+      "label": 2,
+      "language": "en"
+    },
+    {
+      "text": "How do I upload documents kuri business registration?",
+      "label": 4,
+      "language": "mixed"
+    },
+    {
+      "text": "Ndashaka gusubika appointment yanjye.",
+      "label": 1,
+      "language": "rw"
+    },
+    {
+      "text": "Connect me to a human please.",
+      "label": 10,
+      "language": "en"
+    },
+    {
+      "text": "I want to talk to an agent.",
+      "label": 10,
+      "language": "en"
+    }
+  ],
+  "label2id": {
+    "appointment_booking": 0,
+    "cancel_or_reschedule_appointment": 1,
+    "check_application_status": 2,
+    "complaint_or_support_ticket": 3,
+    "document_upload_help": 4,
+    "fees_information": 5,
+    "payment_help": 6,
+    "requirements_information": 7,
+    "reset_password_login_help": 8,
+    "service_eligibility": 9,
+    "speak_to_agent": 10,
+    "start_new_application": 11,
+    "update_application_details": 12
+  },
+  "id2label": {
+    "0": "appointment_booking",
+    "1": "cancel_or_reschedule_appointment",
+    "2": "check_application_status",
+    "3": "complaint_or_support_ticket",
+    "4": "document_upload_help",
+    "5": "fees_information",
+    "6": "payment_help",
+    "7": "requirements_information",
+    "8": "reset_password_login_help",
+    "9": "service_eligibility",
+    "10": "speak_to_agent",
+    "11": "start_new_application",
+    "12": "update_application_details"
+  },
+  "num_labels": 13
+}

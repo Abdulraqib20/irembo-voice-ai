@@ -1,10 +1,22 @@
+"""
+Enhanced Language Detector for Irembo Voice AI
+Detects Kinyarwanda, English, and code-switched (mixed) utterances
+"""
+
 import os
-from typing import Dict, Optional, Any
+import re
+from typing import Dict, Optional, Any, Tuple
 from langdetect import detect, DetectorFactory, LangDetectException
 
 DetectorFactory.seed = 0
 
+
 class EnhancedLanguageDetector:
+    """
+    Language detector optimized for Kinyarwanda/English Voice AI.
+    Handles code-switching detection which is common in Rwandan context.
+    """
+    
     def __init__(self, useGoogleTranslate: bool = False):
         self.useGoogleTranslate = useGoogleTranslate
         self.googleTranslateClient = None
@@ -17,94 +29,139 @@ class EnhancedLanguageDetector:
                 print(f"Warning: Google Translate not available: {e}")
                 self.useGoogleTranslate = False
 
-        self.supportedLanguages = {'en', 'yo', 'ha', 'ig'}
+        self.supportedLanguages = {'en', 'rw', 'mixed'}
         self.languageNames = {
             'en': 'English',
-            'yo': 'Yoruba',
-            'ha': 'Hausa',
-            'ig': 'Igbo',
-            'pcm': 'Nigerian Pidgin'
+            'rw': 'Kinyarwanda',
+            'mixed': 'Kinyarwanda-English Mixed',
+            'fr': 'French'
         }
 
-        self.pidginIndicators = [
-            'wetin', 'dey', 'abeg', 'abi', 'wahala', 'how far',
-            'no be', 'i wan', 'wan', 'make', 'fit', 'sabi', 'chop', 'pikin',
-            'oga', 'madam', 'kuku', 'shey', 'wey', 'go come', 'be my',
-            'i go', 'no go', 'e be', 'e no', 'comot', 'carry', 'na so',
-            'light bill', 'spend', 'yesterday', 'help me', 'pay light',
-            'show me', 'for me', 'na wetin', 'which one'
+        # Kinyarwanda language indicators
+        # Common words, verb prefixes, and grammatical patterns
+        self.kinyarwandaIndicators = [
+            # Common verbs and phrases
+            'ndashaka', 'nashaka', 'nshaka', 'nkeneye', 'mumfashishe',
+            'ndabashaka', 'urashaka', 'turashaka',
+            # Question words
+            'ese', 'ni iki', 'ni gute', 'ni ryari', 'ni he', 'ni nde',
+            # Common nouns
+            'amafaranga', 'amabwiriza', 'ikibazo', 'ubufasha', 'igihe',
+            # Verb prefixes/suffixes
+            'gusaba', 'gukora', 'gufata', 'kureba', 'kumenya', 'gutanga',
+            'guhindura', 'kwishyura', 'kwinjira', 'gushyiraho', 'kongera',
+            # Negation and connectors
+            'ntabwo', 'ariko', 'ntibyemejwe', 'sinzi', 'ntabasha',
+            # Common phrases in dataset
+            'igeze he', 'aho igeze', 'yarangiye', 'natanze', 'nabonye',
+            # Service-related
+            'indangamuntu', 'pasiporo', 'icyemezo', 'icyangombwa', 'permis',
+            'attestation', 'rendez-vous', 'appointment',
+            # Locations (common in Rwanda)
+            'i kigali', 'i huye', 'i rusizi', 'i muhanga', 'i nyagatare',
+            'i rwamagana', 'i kicukiro',
+            # Pronouns and possessives
+            'yanjye', 'yawe', 'ye', 'yabo', 'yacu',
+            # Status words
+            'checka', 'niba', 'kuri', 'muri',
         ]
 
-        self.yorubaIndicators = [
-            'ẹ', 'ọ', 'ṣ', 'bawo', 'pẹlẹ', 'owo', 'dara', 'jowo',
-            'fẹ', 'ranse', 'káàárọ̀', 'káàsán', 'ìtàn', 'owó', 'ránsẹ́',
-            'san bill', 'itan owo', 'gbe owo', 'bawo ni', 'balance mi',
-            'mo fẹ́', 'ránsẹ́ owó', 'mo fẹ gbe'
+        # Strong English indicators
+        self.englishIndicators = [
+            # Question starters
+            'what is', 'what are', 'how do', 'how can', 'how much',
+            'where is', 'who can', 'can i', 'am i', 'do i',
+            # Common phrases
+            'i want to', 'i need to', 'i submitted', 'i paid',
+            'please tell', 'help me', 'i cannot', 'i made',
+            # Service words
+            'application', 'status', 'requirements', 'documents',
+            'appointment', 'payment', 'password', 'login', 'account',
+            'upload', 'fee', 'eligibility', 'complaint',
+            # Connectors
+            'but', 'and', 'the', 'for', 'with',
         ]
 
-        self.hausaIndicators = [
-            'ina', 'sannu', 'yaya', 'kuɗi', 'kudi', 'amma', 'allah',
-            'aika', 'son in', 'taimaka', 'taimako', 'kowane', 'hakuri',
-            'barka', 'biya', 'hayaki', 'tarihi', 'tarihin', 'tura'
+        # Code-switching indicators (mixed Kinyarwanda + English)
+        self.codeSwitchPatterns = [
+            # Kinyarwanda + English noun
+            r'ndashaka\s+\w*status',
+            r'kureba\s+status',
+            r'gukora\s+new\s+application',
+            r'help\s+me\s+gu\w+',  # help me + Kinyarwanda verb
+            r'ni\s+izihe\s+requirements',
+            r'eligibility\s+ya\s+\w+',
+            r'what\s+\w+\s+nkeneye',
+            r'\w+\s+ariko\s+\w+',  # X ariko Y pattern
+            r'please\s+\w+\s+(yanjye|yawe)',
+            r'(application|status|password)\s+yanjye',
+        ]
+        
+        # French borrowings common in Kinyarwanda context
+        self.frenchBorrowings = [
+            'rendez-vous', 'attestation', 'certificat', 'permis',
         ]
 
-        self.igboIndicators = [
-            'kedu', 'ndeewọ', 'biko', 'ego', 'ọma', 'ya', 'ị',
-            'nke', 'nwa', 'ụ', 'nye', 'ziga', 'nwere', 'achọrọ',
-            'kwụọ', 'ọkụ', 'latrik', 'jiri', 'enyemaka', 'ihe',
-            'nkọwa', 'akaụntụ', 'm', 'gị', 'nwoke', 'nwanyi',
-            'ụnyaahụ', 'ndewo', 'chọrọ'
-        ]
-
-        self.strongEnglishWords = [
-            'what', 'is', 'my', 'the', 'balance', 'account', 'hello',
-            'how', 'are', 'you', 'need', 'help', 'show', 'get', 'can',
-            'good morning', 'send money to', 'electricity', 'with my',
-            'i need', 'do i', 'save money', 'transactions'
-        ]
-
-    def detectWithKeywords(self, text: str) -> tuple[Optional[str], float]:
+    def detectWithKeywords(self, text: str) -> Tuple[Optional[str], float]:
+        """Detect language using keyword matching"""
         textLower = text.lower()
-        words = textLower.split()
-
-        # Count unique matches to avoid over-counting
-        pidginScore = sum(1 for indicator in self.pidginIndicators if indicator in textLower)
-        yorubaScore = sum(1 for indicator in self.yorubaIndicators if indicator in text or indicator in textLower)
-        hausaScore = sum(1 for indicator in self.hausaIndicators if indicator in text or indicator in textLower)
-        igboScore = sum(1 for indicator in self.igboIndicators if indicator in text or indicator in textLower)
-        englishScore = sum(1 for word in self.strongEnglishWords if word in textLower)
-
-        # Remove very short common words from Yoruba that overlap with English
-        yorubaShortWords = ['mi', 'ni', 'ti', 'ko', 'se', 're', 'wa', 'bi', 'na', 'mo', 'ya']
-        yorubaShortMatches = sum(1 for word in yorubaShortWords if word in textLower)
-
-        # If mostly short Yoruba words but also English words, likely English
-        if englishScore >= 2 and yorubaShortMatches > yorubaScore * 0.5:
-            yorubaScore = max(0, yorubaScore - yorubaShortMatches)
-
-        # Scoring with adjusted weights
+        
+        # Count Kinyarwanda indicators
+        rwScore = sum(1 for indicator in self.kinyarwandaIndicators 
+                      if indicator in textLower)
+        
+        # Count English indicators
+        enScore = sum(1 for indicator in self.englishIndicators 
+                      if indicator in textLower)
+        
+        # Check for code-switching patterns
+        mixedScore = sum(1 for pattern in self.codeSwitchPatterns 
+                         if re.search(pattern, textLower))
+        
+        # French borrowings (neutral - common in both rw context)
+        frScore = sum(1 for word in self.frenchBorrowings if word in textLower)
+        
+        # Boost mixed if both languages detected
+        if rwScore >= 1 and enScore >= 1:
+            mixedScore += 2
+        
+        # Add French borrowings to Kinyarwanda context
+        rwScore += frScore * 0.5
+        
+        # Determine language
         scores = {
-            'pcm': pidginScore * 1.3,  # Boost Pidgin
-            'yo': yorubaScore * 1.0,
-            'ha': hausaScore * 1.0,
-            'ig': igboScore * 1.0,
-            'en': englishScore * 1.1   # Boost English to compete with Yoruba
+            'rw': rwScore * 1.2,  # Boost Kinyarwanda slightly
+            'en': enScore * 1.0,
+            'mixed': mixedScore * 1.5,  # Boost mixed detection
         }
-
+        
         maxLang = max(scores.keys(), key=lambda k: scores[k])
         maxScore = scores[maxLang]
-
-        # If English score is strong, prefer it
-        if scores['en'] >= 2.5 and scores['en'] >= maxScore * 0.8:
-            return 'en', min(0.95, 0.7 + (scores['en'] * 0.05))
-
-        if maxScore >= 1.5:
-            confidence = min(0.95, 0.6 + (maxScore * 0.1))
+        
+        # If mixed score is significant, prefer it
+        if scores['mixed'] >= 2.0:
+            confidence = min(0.95, 0.65 + (scores['mixed'] * 0.08))
+            return 'mixed', confidence
+        
+        # Strong Kinyarwanda signal
+        if scores['rw'] >= 2.0 and scores['rw'] > scores['en']:
+            confidence = min(0.95, 0.6 + (scores['rw'] * 0.1))
+            return 'rw', confidence
+        
+        # Strong English signal
+        if scores['en'] >= 2.0 and scores['en'] > scores['rw']:
+            confidence = min(0.95, 0.6 + (scores['en'] * 0.1))
+            return 'en', confidence
+        
+        # Low confidence
+        if maxScore >= 1.0:
+            confidence = min(0.85, 0.5 + (maxScore * 0.1))
             return maxLang, confidence
-
+        
         return None, 0.0
 
-    def detectWithGoogle(self, text: str) -> tuple[Optional[str], float]:
+    def detectWithGoogle(self, text: str) -> Tuple[Optional[str], float]:
+        """Use Google Translate API for detection (optional)"""
         if not self.googleTranslateClient:
             return None, 0.0
 
@@ -113,14 +170,14 @@ class EnhancedLanguageDetector:
             detectedLang = result['language']
             confidence = result.get('confidence', 0.5)
 
-            if detectedLang == 'yo':
-                return 'yo', confidence
-            elif detectedLang == 'ha':
-                return 'ha', confidence
-            elif detectedLang == 'ig':
-                return 'ig', confidence
+            # Map to our language codes
+            if detectedLang == 'rw':
+                return 'rw', confidence
             elif detectedLang == 'en':
                 return 'en', confidence
+            elif detectedLang == 'fr':
+                # French often detected for Kinyarwanda with French borrowings
+                return 'rw', confidence * 0.7
 
             return detectedLang, confidence
 
@@ -128,43 +185,73 @@ class EnhancedLanguageDetector:
             print(f"Google Translate detection failed: {e}")
             return None, 0.0
 
-    def detectWithLangdetect(self, text: str) -> tuple[Optional[str], float]:
+    def detectWithLangdetect(self, text: str) -> Tuple[Optional[str], float]:
+        """Use langdetect library for fallback detection"""
         try:
             detectedLang = detect(text)
 
-            if detectedLang in self.supportedLanguages:
-                return detectedLang, 0.75
+            # langdetect maps: rw = Kinyarwanda (if available)
+            if detectedLang == 'rw':
+                return 'rw', 0.75
             elif detectedLang == 'en':
                 return 'en', 0.80
+            elif detectedLang == 'fr':
+                # French often detected for Kinyarwanda text
+                return 'rw', 0.60
+            elif detectedLang == 'sw':
+                # Swahili sometimes confused with Kinyarwanda
+                return 'rw', 0.55
 
-            return detectedLang, 0.60
+            return 'en', 0.50  # Default fallback
 
         except LangDetectException:
             return 'en', 0.50
 
     def detectLanguage(self, text: str) -> str:
+        """
+        Main detection method - returns language code.
+        
+        Returns:
+            'en' for English
+            'rw' for Kinyarwanda  
+            'mixed' for code-switched
+        """
         if not text or len(text.strip()) < 2:
             return 'en'
 
+        # First try keyword-based detection (most reliable for our context)
         keywordLang, keywordConf = self.detectWithKeywords(text)
-        if keywordConf >= 0.75 and keywordLang:
+        if keywordConf >= 0.70 and keywordLang:
             return keywordLang
 
+        # Try Google Translate if available
         if self.useGoogleTranslate:
             googleLang, googleConf = self.detectWithGoogle(text)
-            if googleConf >= 0.70 and googleLang:
+            if googleConf >= 0.75 and googleLang:
                 return googleLang
 
-        if keywordConf >= 0.60 and keywordLang:
+        # Medium confidence from keywords
+        if keywordConf >= 0.55 and keywordLang:
             return keywordLang
 
+        # Fallback to langdetect
         langdetectLang, langdetectConf = self.detectWithLangdetect(text)
         return langdetectLang if langdetectLang else 'en'
 
     def getLanguageName(self, langCode: str) -> str:
+        """Get human-readable language name"""
         return self.languageNames.get(langCode, 'English')
 
     def detectWithConfidence(self, text: str) -> Dict[str, Any]:
+        """
+        Detect language with full confidence details.
+        
+        Returns dict with:
+            - language: Language code
+            - language_name: Human-readable name
+            - confidence: Detection confidence (0-1)
+            - detection_method: Which method was used
+        """
         if not text or len(text.strip()) < 2:
             return {
                 'language': 'en',
@@ -173,6 +260,7 @@ class EnhancedLanguageDetector:
                 'detection_method': 'default'
             }
 
+        # Collect all detection results
         keywordLang, keywordConf = self.detectWithKeywords(text)
         googleLang, googleConf = None, 0.0
         langdetectLang, langdetectConf = None, 0.0
@@ -198,10 +286,12 @@ class EnhancedLanguageDetector:
                 'detection_method': 'fallback'
             }
 
+        # Select best detection
         bestDetection = max(detections, key=lambda x: x[2])
         method, language, confidence = bestDetection
 
-        if keywordConf >= 0.75 and keywordLang:
+        # Prefer keyword detection for our domain
+        if keywordConf >= 0.70 and keywordLang:
             language = keywordLang
             confidence = keywordConf
             method = 'keyword'
@@ -220,9 +310,16 @@ class EnhancedLanguageDetector:
         }
 
     def isSupportedLanguage(self, langCode: str) -> bool:
-        return langCode in self.supportedLanguages or langCode == 'pcm'
+        """Check if language is supported"""
+        return langCode in self.supportedLanguages
+
+    def isCodeSwitched(self, text: str) -> bool:
+        """Check if text contains code-switching"""
+        lang = self.detectLanguage(text)
+        return lang == 'mixed'
 
     def translate(self, text: str, targetLanguage: str = 'en') -> Optional[str]:
+        """Translate text using Google Translate (if available)"""
         if not self.googleTranslateClient:
             return None
 
