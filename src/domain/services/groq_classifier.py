@@ -18,9 +18,7 @@ class GroqClassifier:
         self.client = Groq(api_key=apiKey)
         self.model = model
         self.intents = [
-            "check_balance", "send_money", "pay_bill", "savings_goal",
-            "transaction_history", "get_loan", "financial_education",
-            "customer_support", "greeting", "unknown"
+
         ]
         self.lastCallTime = 0
         self.minDelay = 0.5
@@ -33,14 +31,10 @@ class GroqClassifier:
 
         languageNames = {
             'en': 'English',
-            'yo': 'Yoruba',
-            'ha': 'Hausa',
-            'ig': 'Igbo',
-            'pcm': 'Nigerian Pidgin'
         }
         detectedLanguage = languageNames.get(language, 'English')
 
-        prompt = f"""You are a multilingual financial assistant for Nigerian users.
+        prompt = f"""You are a multilingual ......
 
 Classify this query into ONE intent: {', '.join(self.intents)}
 
@@ -48,16 +42,11 @@ Query: "{query}"
 Language: {detectedLanguage}
 
 Context:
-- Understand Nigerian languages: English, Yoruba, Hausa, Igbo, Nigerian Pidgin
+- Understand languages: English,
 - Handle code-switching (queries mixing multiple languages)
-- Recognize cultural context and local payment methods (MTN, Airtel, NEPA, etc.)
+- Recognize cultural context
 
 Examples:
-- "Wetin be my balance?" → check_balance
-- "I wan send money" → send_money
-- "Bawo ni balance mi?" → check_balance
-- "Ina son in aika kuɗi" → send_money
-- "Kedu ego m?" → check_balance
 
 IMPORTANT: Respond with ONLY valid JSON:
 {{"intent": "intent_name", "confidence": 0.85}}"""

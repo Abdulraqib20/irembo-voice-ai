@@ -1,6 +1,5 @@
 """
-Intent Classification Service for financial intents.
-
+Intent Classification Service
 Provides basic keyword-based intent classification.
 For advanced classification, use HybridClassifier instead.
 """
@@ -12,14 +11,7 @@ class IntentClassificationService:
     """Business logic for intent classification"""
 
     INTENT_KEYWORDS = {
-        "balance_inquiry": ["balance", "account", "how much", "money", "owo mi da"],
-        "transfer": ["send", "transfer", "pay", "fi ranṣẹ", "aika"],
-        "bill_payment": ["bill", "electricity", "water", "nepa", "ina", "dstv", "gotv"],
-        "vtu_airtime": ["buy airtime", "purchase airtime", "recharge", "top up", "load airtime", "airtime for", "buy credit"],
-        "vtu_data": ["buy data", "purchase data", "data bundle", "data plan", "gb data", "mb data", "need data"],
-        "loan": ["loan", "borrow", "awin"],
-        "savings": ["save", "saving", "ifowopamọ"],
-        "advice": ["help", "advice", "guide", "iranlọwọ"]
+
     }
 
     @staticmethod
