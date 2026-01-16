@@ -1,0 +1,29 @@
+{
+  "model_name": "Davlan/afro-xlmr-base",
+  "train_file": "data/processed/train_hf.json",
+  "val_file": "data/processed/val_hf.json",
+  "output_dir": "models/transformer_intent",
+  "max_length": 128,
+  "epochs": 10,
+  "batch_size": 8,
+  "learning_rate": 2e-05,
+  "warmup_ratio": 0.1,
+  "weight_decay": 0.01,
+  "gradient_accumulation_steps": 1,
+  "seed": 42,
+  "label2id": {
+    "appointment_booking": 0,
+    "cancel_or_reschedule_appointment": 1,
+    "check_application_status": 2,
+    "complaint_or_support_ticket": 3,
+    "document_upload_help": 4,
+    "fees_information": 5,
+    "payment_help": 6,
+    "requirements_information": 7,
+    "reset_password_login_help": 8,
+    "service_eligibility": 9,
+    "speak_to_agent": 10,
+    "start_new_application": 11,
+    "update_application_details": 12
+  }
+}
