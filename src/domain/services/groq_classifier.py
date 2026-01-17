@@ -19,7 +19,7 @@ class GroqClassifier:
     Handles complex Kinyarwanda/English code-switched utterances.
     """
     
-    def __init__(self, model: str = "llama-3.1-8b-instant"):
+    def __init__(self, model: str = "mixtral-8x7b-32768"):
         # Load environment variables from .env file
         load_dotenv(override=True)
 

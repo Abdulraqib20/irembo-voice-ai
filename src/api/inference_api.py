@@ -33,7 +33,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
 from ..domain.services.rule_based_classifier import RuleBasedClassifier
@@ -295,6 +295,14 @@ def classify_with_fallback(text: str, language: str = "en") -> tuple[str, float,
 # ============================================================================
 # API Endpoints
 # ============================================================================
+
+@app.get("/", response_class=HTMLResponse)
+async def demo_ui():
+    """Serve the demo HTML UI."""
+    demo_path = Path(__file__).with_name("demo.html")
+    if not demo_path.exists():
+        raise HTTPException(status_code=404, detail="Demo UI not found")
+    return HTMLResponse(demo_path.read_text(encoding="utf-8"))
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():

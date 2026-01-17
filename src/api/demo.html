@@ -76,7 +76,7 @@
             font-weight: bold;
             color: #555;
             display: inline-block;
-            width: 120px;
+            width: 150px;
         }
 
         .value {
@@ -103,20 +103,7 @@
         </div>
         <button onclick="classify()">Classify</button>
 
-        <div id="result" class="result">
-            <div class="result-row">
-                <span class="label">Intent:</span>
-                <span class="value" id="resultIntent"></span>
-            </div>
-            <div class="result-row">
-                <span class="label">Confidence:</span>
-                <span class="value" id="resultConfidence"></span>
-            </div>
-            <div class="result-row">
-                <span class="label">Language:</span>
-                <span class="value" id="resultLanguage"></span>
-            </div>
-        </div>
+        <div id="result" class="result"></div>
     </div>
 
     <script>
@@ -136,10 +123,16 @@
             fetch(`${API_URL}/classify`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ utterance })
+                body: JSON.stringify({ utterance_text: utterance })
             })
                 .then(r => r.json())
                 .then(data => {
+                    const detectedLanguage = (data.detected_language || 'unknown').toUpperCase();
+                    const method = resolveMethod(data.fallback_used, data.fallback_reason);
+                    const confidencePct = (data.confidence * 100).toFixed(1);
+                    const fallbackUsed = data.fallback_used ? 'Yes' : 'No';
+                    const fallbackReason = data.fallback_reason || 'N/A';
+
                     resultDiv.innerHTML = `
                     <div class="result-row">
                         <span class="label">Intent:</span>
@@ -147,17 +140,60 @@
                     </div>
                     <div class="result-row">
                         <span class="label">Confidence:</span>
-                        <span class="value">${(data.confidence * 100).toFixed(1)}%</span>
+                        <span class="value">${confidencePct}%</span>
                     </div>
                     <div class="result-row">
-                        <span class="label">Language:</span>
-                        <span class="value">${data.language.toUpperCase()}</span>
+                        <span class="label">Detected Language:</span>
+                        <span class="value">${detectedLanguage}</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="label">Method Used:</span>
+                        <span class="value">${method}</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="label">Fallback Used:</span>
+                        <span class="value">${fallbackUsed}</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="label">Fallback Reason:</span>
+                        <span class="value">${fallbackReason}</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="label">Model Version:</span>
+                        <span class="value">${data.model_version || 'N/A'}</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="label">Latency:</span>
+                        <span class="value">${data.latency_ms ? data.latency_ms.toFixed(2) : 'N/A'} ms</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="label">Request ID:</span>
+                        <span class="value">${data.request_id || 'N/A'}</span>
                     </div>
                 `;
                 })
                 .catch(err => {
                     resultDiv.innerHTML = `<div class="error">Error: ${err.message}</div>`;
                 });
+        }
+
+        function resolveMethod(fallbackUsed, fallbackReason) {
+            if (!fallbackUsed) {
+                return 'Transformer (primary)';
+            }
+            if (!fallbackReason) {
+                return 'Fallback (unknown)';
+            }
+            if (fallbackReason.startsWith('groq_llm')) {
+                return 'Groq LLM (tertiary fallback)';
+            }
+            if (fallbackReason.startsWith('rule_based')) {
+                return 'Rule-based (secondary fallback)';
+            }
+            if (fallbackReason.startsWith('transformer_error')) {
+                return 'Fallback after transformer error';
+            }
+            return 'Fallback (other)';
         }
 
         // Allow Enter key to trigger classify
