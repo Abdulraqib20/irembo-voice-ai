@@ -24,7 +24,8 @@ def evaluate(classifier, samples, maxSamples=None):
 
     for i, sample in enumerate(samples, 1):
         print(f"Processing {i}/{total}...", end='\r')
-        result = classifier.classify(sample['query'], sample.get('language', 'en'))
+        text = sample.get('text', sample.get('query', ''))
+        result = classifier.classify(text, sample.get('language', 'en'))
         predicted = result.intent.value
         actual = sample['intent']
         totalLatency += result.latency_ms

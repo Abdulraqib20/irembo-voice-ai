@@ -4,6 +4,7 @@ Production Inference API for Irembo Voice AI Intent Classification.
 Features:
 - Transformer-based primary classifier
 - Confidence-based fallback to rule-based system
+- Groq LLM as third-tier fallback for edge cases
 - Request logging and monitoring
 - Health endpoints for orchestration
 """
@@ -17,6 +18,17 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
+
+# Load .env from project root (handles various working directories)
+_project_root = Path(__file__).resolve().parents[2]
+_env_path = _project_root / ".env"
+if _env_path.exists():
+    load_dotenv(_env_path, override=True)
+else:
+    # Fallback: try current working directory
+    load_dotenv(override=True)
+
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from fastapi import FastAPI, HTTPException, Request
@@ -25,6 +37,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from ..domain.services.rule_based_classifier import RuleBasedClassifier
+from ..domain.services.groq_classifier import GroqClassifier
 from ..services.enhanced_language_detector import EnhancedLanguageDetector
 from ..config.monitoring import get_monitor, ProductionMonitor
 from ..config.model_registry import ModelRegistry, DEPLOYMENT_CONFIG
@@ -46,6 +59,8 @@ class ModelContainer:
     tokenizer = None
     label_map: Dict[int, str] = {}
     rule_classifier: Optional[RuleBasedClassifier] = None
+    groq_classifier: Optional[GroqClassifier] = None
+    groq_enabled: bool = False
     language_detector: Optional[EnhancedLanguageDetector] = None
     monitor: Optional[ProductionMonitor] = None
     model_version: str = "v1.0.0"
@@ -89,10 +104,19 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning(f"Model not found at {model_path}, using fallback only")
     
-    # Load fallback classifier
+    # Load fallback classifiers
     models.rule_classifier = RuleBasedClassifier()
     models.language_detector = EnhancedLanguageDetector()
     models.monitor = get_monitor()
+    
+    # Load Groq LLM classifier (third-tier fallback)
+    try:
+        models.groq_classifier = GroqClassifier()
+        models.groq_enabled = True
+        logger.info("Groq LLM classifier loaded (third-tier fallback)")
+    except Exception as e:
+        logger.warning(f"Groq classifier not available: {e}")
+        models.groq_enabled = False
     
     # Get model version from registry
     registry = ModelRegistry()
@@ -157,6 +181,7 @@ class HealthResponse(BaseModel):
     """Health check response."""
     status: str
     model_loaded: bool
+    groq_enabled: bool = False
     model_version: str
     device: str
     metrics: Optional[Dict[str, Any]] = None
@@ -187,54 +212,84 @@ def classify_with_transformer(text: str) -> tuple[str, float]:
     return intent, confidence.item()
 
 
-def classify_with_fallback(text: str) -> tuple[str, float, bool, Optional[str]]:
+def classify_with_groq(text: str, language: str = "en") -> tuple[str, float]:
+    """Run Groq LLM inference, return (intent, confidence)."""
+    if models.groq_classifier is None:
+        raise ValueError("Groq classifier not loaded")
+    
+    result = models.groq_classifier.classify(text, language)
+    return result.intent.value, result.confidence
+
+
+def classify_with_fallback(text: str, language: str = "en") -> tuple[str, float, bool, Optional[str]]:
     """
-    Classify with confidence-based fallback strategy.
+    Classify with three-tier confidence-based fallback strategy.
+    
+    Tier 1: Transformer (primary) - fast, accurate, self-contained
+    Tier 2: Rule-based (secondary) - interpretable, no external deps
+    Tier 3: Groq LLM (tertiary) - handles edge cases, external API
     
     Returns:
         (intent, confidence, fallback_used, fallback_reason)
     """
     fallback_used = False
     fallback_reason = None
+    confidence_threshold = DEPLOYMENT_CONFIG["confidence_threshold"]
     
-    # Try transformer first if available
+    best_intent = None
+    best_confidence = 0.0
+    
+    # ========== TIER 1: Transformer ==========
     if models.transformer_model is not None:
         try:
             intent, confidence = classify_with_transformer(text)
+            best_intent, best_confidence = intent, confidence
             
-            # Check confidence threshold
-            if confidence < DEPLOYMENT_CONFIG["confidence_threshold"]:
-                fallback_used = True
-                fallback_reason = f"low_confidence_{confidence:.3f}"
+            # High confidence - return immediately
+            if confidence >= confidence_threshold:
+                return intent, confidence, False, None
                 
-                # Use rule-based fallback
-                rule_result = models.rule_classifier.classify(text)
-                if rule_result.confidence > confidence:
-                    return (
-                        rule_result.intent.value,
-                        rule_result.confidence,
-                        True,
-                        fallback_reason
-                    )
-            
-            return intent, confidence, fallback_used, fallback_reason
-            
         except Exception as e:
             logger.error(f"Transformer inference failed: {e}")
-            fallback_used = True
             fallback_reason = f"transformer_error: {str(e)}"
     else:
-        fallback_used = True
         fallback_reason = "transformer_not_loaded"
     
-    # Pure fallback mode
-    rule_result = models.rule_classifier.classify(text)
-    return (
-        rule_result.intent.value,
-        rule_result.confidence,
-        fallback_used,
-        fallback_reason
-    )
+    # ========== TIER 2: Rule-based ==========
+    fallback_used = True
+    rule_result = models.rule_classifier.classify(text, language)
+    
+    if rule_result.confidence > best_confidence:
+        best_intent = rule_result.intent.value
+        best_confidence = rule_result.confidence
+        fallback_reason = f"rule_based_confidence_{rule_result.confidence:.3f}"
+    
+    # If rule-based has high confidence, return
+    if best_confidence >= confidence_threshold:
+        return best_intent, best_confidence, True, fallback_reason
+    
+    # ========== TIER 3: Groq LLM ==========
+    if models.groq_enabled and models.groq_classifier is not None:
+        try:
+            groq_intent, groq_confidence = classify_with_groq(text, language)
+            
+            if groq_confidence > best_confidence:
+                best_intent = groq_intent
+                best_confidence = groq_confidence
+                fallback_reason = f"groq_llm_confidence_{groq_confidence:.3f}"
+                logger.info(f"Groq LLM used for: '{text[:50]}...' -> {groq_intent} ({groq_confidence:.3f})")
+                
+        except Exception as e:
+            logger.warning(f"Groq LLM fallback failed: {e}")
+            # Keep best result from earlier tiers
+    
+    # Return best result from all tiers
+    if best_intent is None:
+        best_intent = "unknown"
+        best_confidence = 0.0
+        fallback_reason = "all_classifiers_failed"
+    
+    return best_intent, best_confidence, fallback_used, fallback_reason
 
 
 # ============================================================================
@@ -249,6 +304,7 @@ async def health_check():
     return HealthResponse(
         status=health.get("status", "unknown"),
         model_loaded=models.transformer_model is not None,
+        groq_enabled=models.groq_enabled,
         model_version=models.model_version,
         device=models.device,
         metrics=health.get("metrics")
@@ -268,9 +324,10 @@ async def classify_intent(request: ClassifyRequest):
     """
     Classify user intent from utterance text.
     
-    Uses transformer model as primary, falls back to rule-based if:
-    - Confidence is below threshold
-    - Transformer fails
+    Three-tier fallback strategy:
+    1. Transformer (primary) - high accuracy, self-contained
+    2. Rule-based (secondary) - fast, interpretable
+    3. Groq LLM (tertiary) - handles edge cases
     """
     request_id = str(uuid.uuid4())[:8]
     start_time = time.time()
@@ -281,9 +338,9 @@ async def classify_intent(request: ClassifyRequest):
         lang_result = models.language_detector.detect(request.utterance_text)
         language = lang_result.get("language", "unknown")
     
-    # Classify with fallback logic
+    # Classify with three-tier fallback logic
     intent, confidence, fallback_used, fallback_reason = classify_with_fallback(
-        request.utterance_text
+        request.utterance_text, language
     )
     
     latency_ms = (time.time() - start_time) * 1000
