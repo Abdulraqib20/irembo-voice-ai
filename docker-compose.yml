@@ -1,0 +1,13 @@
+services:
+  irembo-intent-api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      PYTHONPATH: /app
+    volumes:
+      - ./models/transformer_intent:/app/models/transformer_intent:ro
+      - ./logs:/app/logs
+    restart: unless-stopped

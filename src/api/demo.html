@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intent Classifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #555;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-left: 3px solid #333;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result-row {
+            margin: 12px 0;
+            font-size: 14px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #555;
+            display: inline-block;
+            width: 120px;
+        }
+
+        .value {
+            color: #333;
+        }
+
+        .loading {
+            text-align: center;
+            color: #999;
+        }
+
+        .error {
+            color: #d32f2f;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Intent Classifier</h1>
+
+        <div class="input-group">
+            <input type="text" id="utterance" placeholder="Enter text to classify..." />
+        </div>
+        <button onclick="classify()">Classify</button>
+
+        <div id="result" class="result">
+            <div class="result-row">
+                <span class="label">Intent:</span>
+                <span class="value" id="resultIntent"></span>
+            </div>
+            <div class="result-row">
+                <span class="label">Confidence:</span>
+                <span class="value" id="resultConfidence"></span>
+            </div>
+            <div class="result-row">
+                <span class="label">Language:</span>
+                <span class="value" id="resultLanguage"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+
+        function classify() {
+            const utterance = document.getElementById('utterance').value.trim();
+            if (!utterance) {
+                alert('Please enter text');
+                return;
+            }
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="loading">Processing...</div>';
+            resultDiv.classList.add('show');
+
+            fetch(`${API_URL}/classify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ utterance })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    resultDiv.innerHTML = `
+                    <div class="result-row">
+                        <span class="label">Intent:</span>
+                        <span class="value">${data.predicted_intent.replace(/_/g, ' ').toUpperCase()}</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="label">Confidence:</span>
+                        <span class="value">${(data.confidence * 100).toFixed(1)}%</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="label">Language:</span>
+                        <span class="value">${data.language.toUpperCase()}</span>
+                    </div>
+                `;
+                })
+                .catch(err => {
+                    resultDiv.innerHTML = `<div class="error">Error: ${err.message}</div>`;
+                });
+        }
+
+        // Allow Enter key to trigger classify
+        document.getElementById('utterance').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') classify();
+        });
+    </script>
+</body>
+
+</html>
