@@ -24,6 +24,25 @@ This repository implements a multilingual intent classification system for Iremb
 - Confidence-based fallback routes to a rule-based classifier, then to Mixtral-8x7B (LLM) when enabled.
 - Each request is logged with confidence, fallback reason, and latency for monitoring.
 
+## System Architecture
+
+```mermaid
+flowchart LR
+    A["Utterance Text"] --> B["Language Detection"]
+    B --> C["Transformer Classifier"]
+
+    C -->|Low confidence| D["Rule-Based Classifier"]
+    D -->|Low confidence| E["Mixtral-8x7B LLM (Optional)"]
+
+    C --> F["Response"]
+    D --> F
+    E --> F
+
+    F --> G["Request Logging"]
+    G --> H["Monitoring & Alerts"]
+
+```
+
 ## Supported Intents (13)
 
 1. `check_application_status`
