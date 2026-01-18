@@ -26,22 +26,25 @@ Voice AI systems face unique NLP constraints that guided model selection:
 \end{itemize}
 
 \section*{Data Strategy}
-The dataset uses three splits: 561 train, 70 validation, and 69 test samples. Preprocessing standardizes fields and produces a HuggingFace JSON format for training and evaluation.
 
-\paragraph{Noise and transcription errors}
-I retain noise to reflect real ASR conditions. Basic normalization is limited to whitespace handling to avoid destroying code-switched tokens. Future work can include ASR confidence-based filtering and spelling normalization.
+\paragraph{Cleaning noisy voice transcripts}
+I prioritized \textbf{minimal normalization}, strictly limiting preprocessing to whitespace collapse and schema validation. I retained ASR artifacts (such as phonetic approximations) to ensure the training data matches the noisy input expected from the production ASR, preventing a "clean train / dirty test" mismatch that often degrades real-world performance.
 
-\paragraph{Code-switching}
-Training includes Kinyarwanda, English, and mixed utterances. The tokenizer learns cross-language subwords. Evaluation is reported per language to ensure mixed and Kinyarwanda performance remain strong.
+\paragraph{Handling code-switching}
+The dataset contains Kinyarwanda (rw), English (en), and mixed utterances. I preserve code-switched tokens intact---no language-specific filtering. AfroXLMR's subword tokenizer learns shared representations across languages. A lightweight language detector (\texttt{src/services/enhanced\_language\_detector.py}) scores utterances using marker words (e.g., ``ndashaka'', ``igeze'' for rw; ``status'', ``application'' for en) and flags mixed when both scores $>$0.
 
-\paragraph{Low-resource strategy}
-I used the provided labeled data and preserved the given train/val/test splits for core training. In this codebase, I did not apply synthetic augmentation (no template paraphrasing, back-translation, or synonym replacement). Instead, I focused on multilingual transfer by fine-tuning AfroXLMR and added lightweight language detection plus a hybrid fallback path to improve robustness on scarce Kinyarwanda and code-switched utterances.
+\paragraph{Handling code-switching}
+Given the dataset contains Kinyarwanda (rw), English (en), and mixed utterances, I adopted a strategy that preserves code-switched sequences intact without language-specific filtering. AfroXLMR's subword tokenizer learns shared representations across languages. A lightweight custom language detector scores utterances using marker words (e.g., ``ndashaka'', ``igeze'' for rw; ``status'', ``application'' for en) and flags mixed when both scores $>$0.
+
+\paragraph{Small and imbalanced data}
+Faced with a limited and imbalanced dataset of 700 samples (561 train, 70 val, 69 test) across 13 intents. I track intent/language distributions in preprocessing and use \textbf{Macro F1-Score} (not accuracy) to weight rare intents equally. The \textbf{Hybrid Fallback mechanism} (rule-based + LLM) reduces errors on underrepresented cases while new data accumulates.
 
 \paragraph{Data quality improvement over time}
-Feedback loop for continuous improvement: low-confidence utterances ($<$0.7) flagged for human review; agent escalation captures failed utterances for labeling; retraining triggered after 100+ new samples; A/B deployment tests new versions on 10\% traffic first.
+I established an \textbf{Active Learning loop} driven by production telemetry. The system automatically flags predictions with confidence scores below 0.7 for human review and relabeling. This creates a continuous feedback cycle to retrain the model on its hardest edge cases, with all iterations tracked in a versioned registry.
+
 
 \section*{Evaluation}
-I report accuracy, macro precision, macro recall, and macro F1. Macro metrics are chosen to weight all intents equally, which is critical for public services. Weighted metrics can hide poor performance on rare intents.
+I report accuracy, Macro Precision, Macro Recall, and Macro F1. Macro metrics are chosen to weight all intents equally, which is critical for public services. Weighted metrics can hide poor performance on rare intents.
 
 \begin{table}[h]
 \centering
@@ -100,11 +103,9 @@ Government services must serve all citizens equitably. Key risks and mitigations
   \item \textbf{Demographic proxies:} Language choice may correlate with rural/urban or education level. Regular audits should check if certain user groups experience higher escalation rates.
 \end{itemize}
 
-\paragraph{Explainability}
-Citizens deserve transparency: the API returns confidence scores; low confidence triggers explicit ``I'm not sure'' responses; each intent includes canonical examples for explanation; escalation to agents is communicated clearly (``I couldn't understand your request. Connecting you to an agent.'').
+\paragraph{Explainability:} The API returns confidence scores; low confidence triggers ``I'm not sure'' responses; escalation is communicated clearly. Each intent has canonical examples for explanation.
 
-\paragraph{Responsible AI}
-Public sector AI requires: no silent failures (uncertain predictions escalate to humans); audit trail (all predictions logged with request ID); human oversight (system augments, not replaces, agents); data privacy (utterance logs anonymized, PII redacted).
+\paragraph{Responsible AI:} No silent failures (uncertain predictions escalate to humans); audit trail (all predictions logged with request ID); human oversight (system augments agents, not replaces); data privacy (utterances anonymized, PII redacted).
 
 \section*{Tradeoffs and Limitations}
 
