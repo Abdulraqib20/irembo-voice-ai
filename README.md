@@ -1,13 +1,13 @@
-# Irembo Voice AI - Intent Classification System
+# Irembo Voice AI Intent Classification System
 
-A machine learning solution for classifying user intents in a multilingual (Kinyarwanda/English) Voice AI system for Rwanda's e-government platform.
+This repository implements a multilingual intent classification system for Irembo Voice AI, targeting Kinyarwanda, English, and code-switched utterances for Rwanda’s e-government services.
 
-## 📊 Results Summary
+## Results Summary (Test Split)
 
 | Model | Accuracy | Macro F1 | Macro Precision | Macro Recall |
 |-------|----------|----------|-----------------|--------------|
-| Rule-Based Baseline | 88.41% | 0.8937 | 0.9034 | 0.8857 |
-| **AfroXLMR-base (Tuned)** | **95.65%** | **0.9563** | **0.9654** | **0.9526** |
+| Rule-Based Baseline | 88.41% | 89.37% | 90.34% | 88.57% |
+| AfroXLMR-base (Tuned) | 95.65% | 95.63% | 96.54% | 95.26% |
 
 ### Per-Language Performance (AfroXLMR-base)
 
@@ -15,198 +15,130 @@ A machine learning solution for classifying user intents in a multilingual (Kiny
 |----------|----------|---------|
 | English | 90.5% | 21 |
 | Code-Switched | 100.0% | 9 |
-| **Kinyarwanda** | **97.4%** | 39 |
+| Kinyarwanda | 97.4% | 39 |
 
-## 🎯 Supported Intents (13)
+## System Overview
 
-1. `check_application_status` - Track application progress
-2. `start_new_application` - Begin new service application
-3. `requirements_information` - Document/eligibility requirements
-4. `fees_information` - Service costs and payments
-5. `appointment_booking` - Schedule appointments
-6. `cancel_or_reschedule_appointment` - Modify appointments
-7. `payment_help` - Payment issues and methods
-8. `reset_password_login_help` - Account access issues
-9. `document_upload_help` - File upload assistance
-10. `update_application_details` - Modify submitted information
-11. `service_eligibility` - Check qualification criteria
-12. `speak_to_agent` - Human agent escalation
-13. `complaint_or_support_ticket` - File complaints
+- Language detection uses lightweight Kinyarwanda/English markers for routing.
+- Primary inference runs on a fine-tuned AfroXLMR transformer.
+- Confidence-based fallback routes to a rule-based classifier, then to Mixtral-8x7B (LLM) when enabled.
+- Each request is logged with confidence, fallback reason, and latency for monitoring.
 
-## 🗂️ Project Structure
+## Supported Intents (13)
+
+1. `check_application_status`
+2. `start_new_application`
+3. `requirements_information`
+4. `fees_information`
+5. `appointment_booking`
+6. `cancel_or_reschedule_appointment`
+7. `payment_help`
+8. `reset_password_login_help`
+9. `document_upload_help`
+10. `update_application_details`
+11. `service_eligibility`
+12. `speak_to_agent`
+13. `complaint_or_support_ticket`
+
+## Repository Structure
 
 ```
 ├── data/
-│   ├── voiceai_intent_train.csv    # Training data (561 samples)
-│   ├── voiceai_intent_val.csv      # Validation data (70 samples)
-│   ├── voiceai_intent_test.csv     # Test data (69 samples)
-│   └── processed/                   # Preprocessed HuggingFace format
+│   ├── voiceai_intent_train.csv
+│   ├── voiceai_intent_val.csv
+│   ├── voiceai_intent_test.csv
+│   └── processed/
 ├── models/
-│   └── transformer_intent/          # Fine-tuned AfroXLMR model
+│   └── transformer_intent/
 ├── notebooks/
-│   └── eda_analysis.ipynb          # Exploratory data analysis
+│   └── eda_analysis.ipynb
 ├── reports/
-│   └── figures/                     # Visualization outputs
+│   └── figures/
 ├── scripts/
-│   ├── preprocess_irembo.py        # Data preprocessing
-│   ├── train_transformer.py        # Model training
-│   ├── eval_transformer.py         # Model evaluation
-│   ├── eval_baseline.py            # Rule-based baseline
-│   └── eval_hybrid.py              # Hybrid classifier evaluation
+│   ├── preprocess_irembo.py
+│   ├── train_transformer.py
+│   ├── eval_transformer.py
+│   ├── eval_baseline.py
+│   └── eval_hybrid.py
 └── src/
+    ├── api/
+    ├── config/
     ├── domain/
-    │   ├── entities/
-    │   │   └── intent_schema.py    # Intent definitions
-    │   └── services/
-    │       ├── rule_based_classifier.py
-    │       ├── groq_classifier.py
-    │       └── hybrid_classifier.py
     └── services/
-        └── enhanced_language_detector.py
 ```
 
-## 🚀 Quick Start
+## Setup
 
-### 1. Environment Setup
+### Requirements
+
+- Python 3.10+
+- Install inference dependencies:
 
 ```bash
-# Create conda environment
-conda create -n voice python=3.12 -y
-conda activate voice
-
-# Install dependencies
-pip install transformers datasets torch scikit-learn pandas
-pip install sentencepiece accelerate
+pip install -r requirements.txt
 ```
 
-### 2. Preprocess Data
+- Training/evaluation dependencies:
+
+```bash
+pip install datasets scikit-learn pandas
+```
+
+### Preprocess Data
 
 ```bash
 python scripts/preprocess_irembo.py
 ```
 
-### 3. Train Transformer Model
+### Train the Transformer
 
 ```bash
 python scripts/train_transformer.py
 ```
 
-### 4. Evaluate Model
+### Evaluate
 
 ```bash
-# Evaluate transformer
 python scripts/eval_transformer.py \
-    --model-dir models/transformer_intent \
-    --test-file data/processed/test_hf.json
+  --model-dir models/transformer_intent \
+  --test-file data/processed/test_hf.json
 
-# Evaluate baseline
 python scripts/eval_baseline.py
+python scripts/eval_hybrid.py
 ```
 
-## 🔧 Model Architecture
+## Run the API
 
-- **Base Model**: [Davlan/afro-xlmr-base](https://huggingface.co/Davlan/afro-xlmr-base)
-- **Fine-tuning**: 10 epochs, warmup ratio 0.1, weight decay 0.01
-- **Optimizer**: AdamW
-- **Learning Rate**: 2e-5
-
-### Why AfroXLMR?
-
-AfroXLMR is specifically pre-trained on African languages including Kinyarwanda, making it ideal for:
-- Low-resource language handling
-- Code-switching between Kinyarwanda and English
-- Cultural and linguistic nuances
-
-## 🌍 Language Support
-
-The system handles three language modes:
-- **English (`en`)**: Pure English utterances
-- **Kinyarwanda (`rw`)**: Pure Kinyarwanda utterances
-- **Mixed (`mixed`)**: Code-switched utterances combining both languages
-
-Example code-switched utterance:
-> "Ndashaka kubona **status** y'application yanjye" (I want to see the status of my application)
-
-## 📈 Training Hyperparameters
-
-```python
-TrainingConfig(
-    model_name="Davlan/afro-xlmr-base",
-    num_epochs=10,
-    batch_size=16,
-    learning_rate=2e-5,
-    warmup_ratio=0.1,
-    weight_decay=0.01,
-    gradient_accumulation_steps=2,
-    max_length=128
-)
-```
-
-## 🧪 Evaluation Metrics
-
-- **Accuracy**: Overall correct predictions
-- **Macro F1**: Average F1 across all intents (treats all intents equally)
-- **Per-Intent F1**: Individual intent performance
-- **Per-Language Accuracy**: Performance breakdown by language
-
-## 📊 Dataset Statistics
-
-| Split | Samples | Languages |
-|-------|---------|-----------|
-| Train | 561 | rw: 43.7%, en: 28.7%, mixed: 27.6% |
-| Validation | 70 | Stratified |
-| Test | 69 | Stratified |
-
-## 🔄 Hybrid Classification Pipeline
-
-```
-User Utterance
-      ↓
-[Language Detection] → Detect rw/en/mixed
-      ↓
-[Rule-Based Classifier] → Keyword matching
-      ↓ (if confidence < 0.7)
-[Transformer Model] → AfroXLMR inference
-      ↓ (if confidence < 0.5)
-[LLM Fallback] → Groq API
-      ↓ (if still uncertain)
-[Human Agent] → Escalation
-```
-
-## 📁 Key Files
-
-| File | Description |
-|------|-------------|
-| `scripts/train_transformer.py` | Fine-tuning pipeline |
-| `scripts/eval_transformer.py` | Evaluation with per-language metrics |
-| `src/domain/entities/intent_schema.py` | Intent definitions and examples |
-| `src/domain/services/rule_based_classifier.py` | Keyword-based classifier |
-| `src/services/enhanced_language_detector.py` | Kinyarwanda/English detection |
-
-## 🛠️ Development
-
-### Running Tests
+### Local
 
 ```bash
-pytest tests/ -v
+uvicorn src.api.inference_api:app --reload --port 8000
 ```
 
-### Code Style
+### Docker
 
 ```bash
-# Format with black
-black src/ scripts/
-
-# Lint with flake8
-flake8 src/ scripts/
+docker compose up --build
 ```
 
-## 📝 License
+### Example Request
+
+```bash
+curl -X POST http://localhost:8000/classify \
+  -H "Content-Type: application/json" \
+  -d '{"utterance_text": "Ndashaka kureba status ya application yanjye"}'
+```
+
+## Optional LLM Fallback
+
+Set `GROQ_API_KEY` to enable Mixtral-8x7B fallback. If not provided, the system runs with the transformer and rule-based tiers only.
+
+## License
 
 This project was developed as part of the Irembo Machine Learning Engineer assessment.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- [Davlan/afro-xlmr-base](https://huggingface.co/Davlan/afro-xlmr-base) - Multilingual African language model
-- [HuggingFace Transformers](https://huggingface.co/transformers/) - Model training framework
-- Irembo Rwanda - Dataset and problem specification
+- Davlan/afro-xlmr-base
+- HuggingFace Transformers
+- Irembo Rwanda (dataset and problem specification)
