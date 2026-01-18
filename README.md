@@ -27,7 +27,7 @@ This repository implements a multilingual intent classification system for Iremb
 ## System Architecture
 
 ```mermaid
-flowchart LR
+flowchart TD
     A["Utterance Text"] --> B["Language Detection"]
     B --> C["Transformer Classifier"]
 
@@ -40,7 +40,6 @@ flowchart LR
 
     F --> G["Request Logging"]
     G --> H["Monitoring & Alerts"]
-
 ```
 
 ## Supported Intents (13)
