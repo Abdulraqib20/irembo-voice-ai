@@ -62,50 +62,51 @@ AfroXLMR base & 95.65\% & 0.9563 & 0.9654 & 0.9526 \\
 \paragraph{Per-language accuracy}
 English 90.5\%, code-switched 100.0\%, Kinyarwanda 97.4\%. This demonstrates strong performance on the target language and on mixed utterances.
 
-\paragraph{Robustness and failure modes}
-Systematic failure analysis reveals:
-\begin{itemize}
-  \item \textbf{Confusable intents:} ``requirements\_information'' vs. ``fees\_information'' overlap when users ask ``What do I need?'' (documents or money?). Mitigation: clarifying follow-up question.
-  \item \textbf{Out-of-scope utterances:} Users may ask unrelated questions (``What's the weather?''). The model assigns low confidence, triggering escalation.
-  \item \textbf{Edge cases tested:} Empty input, single-word queries, very long utterances, profanity---all handled gracefully with fallback.
-\end{itemize}
-Confusion matrix analysis in evaluation scripts guides dataset expansion for ambiguous pairs.
+\paragraph{Robustness and edge-case testing}
+I test robustness with the transformer, baseline, and hybrid evaluation scripts and also probe the live API. Empty inputs are rejected by request validation, ambiguous or mixed-language text is routed through confidence-based fallback, and long utterances are safely handled by the configured max sequence length (128).
+
+\paragraph{Common failure modes}
+Failure modes are identified from the hybrid evaluation confusion matrix and sample errors, and they are logged at inference with explicit fallback reasons. The main patterns are confusable intents (e.g., requirements vs fees) and out-of-scope queries that drive low confidence; when primary or fallback classifiers fail, \texttt{unknown} is returned and the event is recorded.
+
+\paragraph{Suitability for a citizen-facing system}
+Suitability is assessed via macro F1, per-language accuracy, and operational safeguards in the API. Each request is logged with confidence, fallback reason, and latency; monitoring tracks low-confidence rate, fallback rate, P95 latency, and language drift. Health/readiness endpoints support safe rollout, and escalation is available when confidence drops below the defined threshold.
 
 \section*{MLOps and Production Considerations}
 
 \subsection*{Model Versioning and Deployment}
 
-A file-based model registry (\texttt{src/config/model\_registry.py}) tracks versions (semantic versioning), training configs, evaluation metrics, data hash, and active version with rollback capability. Deployment uses FastAPI (\texttt{src/api/inference\_api.py}) with health/readiness endpoints, single and batch classification, and three-tier fallback: Transformer $\rightarrow$ Rule-based $\rightarrow$ Groq LLM (\texttt{mixtral-8x7b-32768}).
+I use a simple model registry to track versions, training configuration, evaluation metrics, and the active model with rollback support. The model is deployed behind a FastAPI service with health/readiness checks and both single and batch inference routes. Docker Containerization is used for reproducible deployment and predictable runtime behavior.
 
 \subsection*{Monitoring in Production}
 
-The monitoring module (\texttt{src/config/monitoring.py}) tracks: latency (avg/P95), confidence distribution, fallback rate, and language drift detection. Alerts trigger when low-confidence rate $>$20\%, fallback rate $>$15\%, P95 latency $>$300ms, or language distribution shifts $>$15\%. All requests are logged as JSONL for offline analysis.
+Inference is logged per request with confidence, latency, language, and fallback reason, and metrics are aggregated over a rolling window. Drift is monitored via language distribution shifts; performance is tracked with low-confidence and fallback rates plus P95 latency. Alerts are triggered when thresholds are exceeded, and logs are retained for offline error analysis.
 
 \subsection*{Real-Time Voice AI Pipeline Integration}
 
-The classifier integrates as: (1) ASR provides transcribed utterance, (2) language detector identifies en/rw/mixed, (3) transformer predicts intent with confidence, (4) if confidence $<$0.7, route to fallback, (5) map intent to backend service. The API exposes \texttt{/classify} (real-time, $<$100ms on GPU) and \texttt{/classify/batch} (bulk processing).
+The pipeline is integrated as: ASR produces text, language is detected, the transformer predicts intent with confidence, and low-confidence cases are routed through fallback. Predicted intents are then mapped to downstream service actions. The real-time API supports both single and batch classification for online and offline flows.
 
 \subsection*{Fallback Strategies}
 
-Three-tier fallback protects citizens from misrouting: (1) Transformer (confidence $\geq$0.7), (2) Rule-based comparison (use higher confidence), (3) Groq LLM for edge cases. All fallback events are logged with reason for post-hoc analysis. This leverages speed (rule-based), interpretability, and semantic understanding (LLM).
+I use a three-tier fallback: transformer first, rule-based second, and an LLM (Mixtral-8x7B) as a last resort for ambiguous cases. Fallback is triggered by confidence thresholds and every fallback decision is logged for review. This balances accuracy, latency, and interpretability in a citizen-facing setting.
 
-\section*{Voice AI Pipeline Architecture (Bonus)}
+\section*{Voice AI Pipeline Architecture}
 
-The end-to-end flow: \textbf{User Speech} $\rightarrow$ \textbf{ASR} $\rightarrow$ \textbf{Language Detection} (en/rw/mixed) $\rightarrow$ \textbf{Intent Classification} (Transformer $\rightarrow$ Rule-based $\rightarrow$ Groq LLM fallback) $\rightarrow$ \textbf{Action Router} $\rightarrow$ \textbf{Response (TTS/Text)}. Each stage logs metrics for observability.
+The implemented flow: \\
+\textbf{Utterance Text} $\rightarrow$ \textbf{Language Detection} (en/rw/mixed) $\rightarrow$ \textbf{Intent Classification} (Transformer $\rightarrow$ Rule-based $\rightarrow$ Mixtral-8x7B (LLM) fallback) $\rightarrow$ \textbf{Response}. \\
+Each request is logged with confidence, fallback reason, and latency for observability.
 
 \section*{Ethics and Public Sector Considerations}
 
 \paragraph{Bias and fairness risks}
-Government services must serve all citizens equitably. Key risks and mitigations:
+Government services must serve all citizens equiatably. Key risks and mitigations:
 \begin{itemize}
-  \item \textbf{Language bias:} Kinyarwanda speakers should not receive worse service than English speakers. I evaluate per-language accuracy separately (Kinyarwanda 97.4\% vs English 90.5\%) and prioritize Kinyarwanda performance.
-  \item \textbf{Intent coverage bias:} Rare intents (e.g., complaint\_or\_support\_ticket) may be underrepresented. Macro F1 weights all intents equally, preventing majority-class dominance.
-  \item \textbf{Demographic proxies:} Language choice may correlate with rural/urban or education level. Regular audits should check if certain user groups experience higher escalation rates.
+  \item \textbf{Language Bias:} Kinyarwanda speakers should not receive worse service than English speakers. I evaluate per-language accuracy separately (Kinyarwanda 97.4\% vs English 90.5\%) and prioritize Kinyarwanda performance.
+  \item \textbf{Intent Coverage Bias:} Rare intents (e.g., \texttt{complaint\_or\_support\_ticket}) may be underrepresented. Macro F1 weighs all intents equally, preventing majority-class dominance.
 \end{itemize}
 
-\paragraph{Explainability:} The API returns confidence scores; low confidence triggers ``I'm not sure'' responses; escalation is communicated clearly. Each intent has canonical examples for explanation.
+\paragraph{Explainability:} Confidence scores and fallback reasons are returned and logged, and low-confidence cases are escalated. Intent definitions include canonical examples to support transparent responses.
 
-\paragraph{Responsible AI:} No silent failures (uncertain predictions escalate to humans); audit trail (all predictions logged with request ID); human oversight (system augments agents, not replaces); data privacy (utterances anonymized, PII redacted).
+\paragraph{Responsible AI:} Uncertain predictions are routed through fallback or escalation, and every decision is logged with a request ID for auditability. The system is designed to augment human service delivery, with monitoring to surface degradation early.
 
 \section*{Tradeoffs and Limitations}
 
