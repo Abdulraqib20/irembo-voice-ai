@@ -3,15 +3,15 @@
 \usepackage{hyperref}
 \usepackage{booktabs}
 
-\title{Irembo Voice AI Intent Classification Report}
+\title{Irembo Voice AI Intent Classification System Report}
 \author{}
 \date{18th January 2026}
 
 \begin{document}
 \maketitle
 
-\noindent\textbf{Code Repository:} \url{https://github.com/Abdulraqib20/irembo-voice-ai}\\
-\textbf{Code and reproducibility:} See scripts for preprocessing, training, and evaluation.
+\noindent\textbf{GitHub Repository:} \url{https://github.com/Abdulraqib20/irembo-voice-ai} \\ \\
+\textbf{Overview:} I implemented and evaluated a multilingual intent classifier for Irembo Voice AI, centered on AfroXLMR fine-tuning with a confidence-based fallback pipeline. The repository includes the full data preprocessing, training, evaluation, and API inference workflow used to generate the results in this report.
 
 \section*{Approach}
 I fine-tuned a multilingual transformer, \href{https://huggingface.co/Davlan/afro-xlmr-base}{Davlan/afro-xlmr-base}, for intent classification. This model was selected because it includes African language coverage and handles morphology and code-switching between Kinyarwanda and English. In production, I use a hybrid routing strategy: the transformer is primary, a rule-based classifier provides a fast baseline and secondary fallback, and a Mixtral-8x7B LLM fallback is used for low-confidence or ambiguous cases. The transformer remains the primary model because it delivers higher macro performance across all intents.
@@ -52,8 +52,8 @@ I report accuracy, Macro Precision, Macro Recall, and Macro F1. Macro metrics ar
 \toprule
 Model & Accuracy & Macro F1 & Macro Precision & Macro Recall \\
 \midrule
-Rule-Based Baseline & 88.41\% & 0.8937 & 0.9034 & 0.8857 \\
-AfroXLMR base & 95.65\% & 0.9563 & 0.9654 & 0.9526 \\
+Rule-Based Baseline & 88.41\% & 89.37\% & 90.34\% & 88.57\% \\
+AfroXLMR base & 95.65\% & 95.63\% & 96.54\% & 95.26\% \\
 \bottomrule
 \end{tabular}
 \caption{Overall test performance.}
@@ -106,31 +106,31 @@ Government services must serve all citizens equiatably. Key risks and mitigation
 
 \paragraph{Explainability:} Confidence scores and fallback reasons are returned and logged, and low-confidence cases are escalated. Intent definitions include canonical examples to support transparent responses.
 
-\paragraph{Responsible AI:} Uncertain predictions are routed through fallback or escalation, and every decision is logged with a request ID for auditability. The system is designed to augment human service delivery, with monitoring to surface degradation early.
+\paragraph{Responsible AI:} Uncertain predictions are routed through the fallback tiers, and an escalation signal is available when confidence drops below threshold. Each request is logged with a request ID and fallback reason for auditability, and monitoring flags degradation via low-confidence, fallback-rate, latency, and language-drift alerts.
 
 \section*{Tradeoffs and Limitations}
 
 \begin{itemize}
-  \item \textbf{Accuracy vs. latency:} Transformer (95.65\% acc, $\sim$60--100ms) vs. rule-based (88.4\% acc, $\sim$16ms). I chose accuracy for citizen-facing correctness, with rule-based as fast fallback.
-  \item \textbf{Model size vs. deployment cost:} AfroXLMR-base (278M params) requires $\sim$1GB memory. For edge deployment, distillation to a smaller model would trade accuracy for resource efficiency.
-  \item \textbf{External API dependency:} Groq LLM fallback adds cost (\$0.05--0.10 per 1K tokens) and latency ($\sim$200--400ms). For cost-sensitive deployments, disable LLM tier or use local smaller LLM.
-  \item \textbf{Dataset size:} 700 samples is small; results should be validated with real production traffic. The feedback loop addresses this over time.
-  \item \textbf{ASR error propagation:} The classifier sees ASR output, not original speech. Severe transcription errors (e.g., ``passport'' $\rightarrow$ ``pass port'') may confuse the model. ASR confidence filtering could help.
+  \item \textbf{Accuracy vs. latency:} Transformer (95.65\% acc, $\sim$60--100ms) vs. rule-based (88.4\% acc, $\sim$16ms). I prioritized the transformer’s higher accuracy, with the rule-based kept as a fallback.
+  \item \textbf{Model size vs. deployment cost:} AfroXLMR-base (278M params) is heavier than a small model; a lighter or distilled model would reduce resource needs at some accuracy cost.
+  \item \textbf{External API dependency:} Mixtral-8x7B LLM (via Groq) fallback adds cost (\$0.05--0.10 per 1K tokens) and latency ($\sim$200--400ms). For cost-sensitive deployments, disable LLM tier or use local smaller LLM.
+  \item \textbf{Dataset size:} 700 samples is small, results should be validated with real prod traffic, and expected to improve with production feedback.
 \end{itemize}
 
-\paragraph{Multilingual expansion strategy}
+\paragraph{Multilingual expansion strategy:}
 To extend beyond Kinyarwanda/English:
 \begin{enumerate}
-  \item \textbf{Add language:} Collect 200+ labeled utterances in target language (e.g., French, Swahili).
-  \item \textbf{Update language detector:} Add marker words for new language to \texttt{enhanced\_language\_detector.py}.
-  \item \textbf{Fine-tune incrementally:} Continue training from existing checkpoint with mixed old + new data to prevent catastrophic forgetting.
-  \item \textbf{Evaluate separately:} Report per-language metrics to ensure new language doesn't degrade existing performance.
+  \item \textbf{Add language data:} Collect labeled utterances in target language (e.g., French, Swahili).
+  \item \textbf{Update detection:} Extend the lightweight language marker list to recognize the new language.
+  \item \textbf{Fine-tune and evaluate:} Continue training from the current checkpoint using a mixed dataset, then report per-language metrics to ensure the new language does not regress existing performance.
 \end{enumerate}
 
 \section*{Conclusion}
 
-AfroXLMR-base provides a reliable, multilingual intent classifier for the Irembo Voice AI use case. It performs strongly on Kinyarwanda (97.4\%) and code-switched speech (100\%) and integrates seamlessly into a production pipeline with confidence-based fallbacks (rule-based + Groq Mixtral LLM) and comprehensive monitoring. The system is designed to be fair (macro F1 metrics), transparent (logging all decisions), and resilient (three-tier fallback) for a citizen-facing government services platform.
+AfroXLMR-base provides a reliable multilingual intent classifier for the Irembo Voice AI use case. Strong performance is achieved on Kinyarwanda (97.4\%) and code-switched speech (100\%), and the system integrates with confidence-based fallbacks (rule-based + Mixtral-8x7B LLM) and comprehensive monitoring. It is designed to be fair (Macro F1), transparent (decision logging), and resilient (three-tier fallback) for a citizen-facing platform.
 
-A working demo is available via Docker containerization with FastAPI inference endpoints, demonstrating production readiness with health checks, batch processing, and real-time classification.
+A working demo is available via Dockerized FastAPI endpoints with health checks, batch processing, and real-time classification.
 
 \end{document}
+
+\section*{Conclusion}
