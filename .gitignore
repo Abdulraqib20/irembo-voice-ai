@@ -75,8 +75,9 @@ coverage.xml
 
 models/transformer_intent/checkpoint-497
 models/transformer_intent/checkpoint-710
-report.aux
-report.fdb_latexmk
-report.fls
-report.out
-report.synctex.gz
+*.gz
+*.out
+*.fls
+*.fdb_latexmk
+*.aux
+*.log
